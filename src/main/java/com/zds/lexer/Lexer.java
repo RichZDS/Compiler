@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.zds.util.LexerUtils;
+import com.zds.lexer.util.LexerUtils;
 import com.zds.lexer.consts.TokenType;
 
 /*
@@ -26,7 +26,7 @@ import com.zds.lexer.consts.TokenType;
  * - 字面量：整数 123、小数 3.14、字符串 "hello"
  * - 运算符：+ - * / 以及 =  > < >= <= == !=
  * - 分隔符：( ) { } ; ,
- * - 注释：// 行注释、/* 块注释 */
+ * - 注释：// 行注释、/* 块注释 * /
  */
 public class Lexer {
 

@@ -1,4 +1,4 @@
-package com.zds.util;
+package com.zds.lexer.util;
 
 /**
  * 词法分析器工具类

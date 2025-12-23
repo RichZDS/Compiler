@@ -1,6 +1,7 @@
 package com.zds.parser;
 
 import com.zds.lexer.Token;
+import com.zds.lexer.consts.TokenType;
 
 /**
  * 语法分析器（Syntax Analyzer）
@@ -412,17 +413,14 @@ public class Parser {
         advance();
         while (!isAtEnd()) {
             if (previous().type == com.zds.lexer.consts.TokenType.SEMI) return;
-            switch (peek().type) {
-                case IF:
-                case FOR:
-                case WHILE:
-                case INT:
-                case DOUBLE:
-                case STRING:
-                case LBRACE:
-                    return;
-                default:
-                    break;
+            if (peek().type == TokenType.IF ||
+                peek().type == TokenType.FOR ||
+                peek().type == TokenType.WHILE ||
+                peek().type == TokenType.INT ||
+                peek().type == TokenType.DOUBLE ||
+                peek().type == TokenType.STRING ||
+                peek().type == TokenType.LBRACE) {
+                return;
             }
             advance();
         }
