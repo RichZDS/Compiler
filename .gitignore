@@ -36,3 +36,108 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Out ###
+out/
+
+### Java Compiler ###
+*.class
+*.jar
+*.war
+*.ear
+
+### Maven ###
+log/
+logs/
+*.log
+
+target/
+!target/*.jar
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+### IDE ###
+*.swp
+*~
+\#*\#
+.settings/
+.loadpath
+.project
+
+### OS generated ###
+Thumbs.db
+ehthumbs.db
+.DS_Store
+
+### Compiler Generated ###
+obj/
+*.o
+*.obj
+
+### Testing ###
+*.coverage
+coverage/
+
+### Temporary files ###
+*.tmp
+*.temp
+.DS_Store?
+
+### Logs ###
+*.log
+log/
+logs/
+
+### Java Compiler ###
+*.class
+*.jar
+*.war
+*.ear
+
+### Maven ###
+log/
+logs/
+*.log
+
+target/
+!target/*.jar
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+### IDE ###
+*.swp
+*~
+\#*\#
+.settings/
+.loadpath
+.project
+
+### OS generated ###
+Thumbs.db
+ehthumbs.db
+.DS_Store
+
+### Compiler Generated ###
+obj/
+*.o
+*.obj
+
+### Testing ###
+*.coverage
+coverage/
+
+### Temporary files ###
+*.tmp
+*.temp
+.DS_Store?
+
+### Logs ###
+*.log
+log/
+logs/
