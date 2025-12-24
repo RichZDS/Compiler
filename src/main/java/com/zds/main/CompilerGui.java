@@ -1,5 +1,4 @@
 package com.zds.main;
-import com.zds.service.CompilationArtifacts;
 import com.zds.service.CompilerService;
 
 import javax.swing.*;
@@ -18,7 +17,7 @@ public class CompilerGui {
     private final JTextArea irAfterArea = new JTextArea();
     private final JTextArea asmArea = new JTextArea();
     private final JTextArea errorArea = new JTextArea();
-    private CompilationArtifacts lastResult = CompilationArtifacts.empty();
+    private CompilerService.Artifacts lastResult = CompilerService.Artifacts.empty();
     public void show() {
         JFrame frame = new JFrame("简易编译器 GUI");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -46,7 +45,7 @@ public class CompilerGui {
         tabs.addTab("错误信息", wrapOutput("错误信息", errorArea));
 
         JPanel rightTop = new JPanel(new BorderLayout());
-        javax.swing.JButton runButton = new javax.swing.JButton("运行编译");
+        JButton runButton = new JButton("运行编译");
         runButton.addActionListener(event -> runCompilation());
 
         JPanel runPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));

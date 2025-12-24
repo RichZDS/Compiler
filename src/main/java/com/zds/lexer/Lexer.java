@@ -1,315 +1,117 @@
 package com.zds.lexer;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import com.zds.lexer.util.LexerUtils;
-import com.zds.lexer.consts.TokenType;
-
-/*
- *@auther 郑笃实
- *@version 1.0
- */
 
 /**
- * 词法分析器（Lexical Analyzer）
+ * 词法分析器 (Lexer)
+ * 门面类 (Facade)：对外提供统一的词法分析接口，屏蔽内部扫描细节。
  *
- * ✅ 用 PPT 常见说法：把"字符流"切分成"单词符号/记号 Token"，即二元式：<种别码, 属性值>
- * - 种别码：TokenType（比如 IF、IDENT、INT_LIT、PLUS ...）
- * - 属性值：literal(字面量值) 或 lexeme(单词原文)
- *
- * 目前支持：
- * - 关键字：if else for while int double string
- * - 标识符：abc、a1、_tmp
- * - 字面量：整数 123、小数 3.14、字符串 "hello"
- * - 运算符：+ - * / 以及 =  > < >= <= == !=
- * - 分隔符：( ) { } ; ,
- * - 注释：// 行注释、/* 块注释 * /
+ * 输入：源代码字符串 (String)
+ * 输出：词法单元序列 (List<Token>)
  */
 public class Lexer {
 
-    private final String source;
-    private final List<Token> tokens = new ArrayList<>();
-    private final List<String> errors = new ArrayList<>();
-
-    private int start = 0;
-    private int current = 0;
-    private int line = 1;
-    private int col = 1;
-
-    private static final Map<String, Token.Type> KEYWORDS = new HashMap<>();
-    static {
-        KEYWORDS.put("if", TokenType.IF);
-        KEYWORDS.put("else", TokenType.ELSE);
-        KEYWORDS.put("for", TokenType.FOR);
-        KEYWORDS.put("while", TokenType.WHILE);
-        KEYWORDS.put("int", TokenType.INT);
-        KEYWORDS.put("double", TokenType.DOUBLE);
-        KEYWORDS.put("string", TokenType.STRING);
-    }
-
-    public Lexer(String source) {
-        this.source = source == null ? "" : source;
+    /**
+     * 对源代码进行词法分析
+     * @param source 源代码字符串
+     * @return 词法单元列表
+     */
+    public static List<Token> scan(String source) {
+        ScannerCore scanner = new ScannerCore(source);
+        return scanner.scanTokens();
     }
 
     /**
-     * 获取词法分析过程中发现的错误列表
+     * 获取最后一次分析的错误信息（如果有）
+     * 注意：通常建议通过上层 Service 统一收集错误，此方法主要用于单独测试。
      */
-    public List<String> getErrors() {
-        return errors;
+    public static List<String> scanErrors(String source) {
+        ScannerCore scanner = new ScannerCore(source);
+        scanner.scanTokens();
+        return scanner.getErrors();
     }
 
+    // ==========================================
+    // Data Structures (Public Interface)
+    // ==========================================
+
     /**
-     * 扫描整个源程序，输出 Token 序列
+     * 词法单元（Token）
+     * 编译器前端的基本数据单元，表示源代码中的一个单词或符号。
      */
-    public List<Token> scanTokens() {
-        while (!isAtEnd()) {
-            start = current;
-            scanToken();
+    public static class Token {
+        /**
+         * Token 类型标识
+         */
+        public static class Type {
+            private final String name;
+            public Type(String name) { this.name = name; }
+            @Override public String toString() { return name; }
         }
-        tokens.add(new Token(TokenType.EOF, "", null, line, col));
-        return tokens;
-    }
 
-    /**
-     * 扫描单个Token
-     */
-    private void scanToken() {
-        char c = advance();
-        switch (c) {
-            // 空白
-            case ' ':
-            case '\r':
-            case '\t':
-                return;
-            case '\n':
-                line++;
-                col = 1;
-                return;
+        public final Type type;       // 种别码
+        public final String lexeme;   // 单词原文
+        public final Object literal;  // 字面量值（如数字、字符串内容）
+        public final int line;        // 行号
+        public final int col;         // 列号
 
-            // 分隔符
-            case '(': addToken(TokenType.LPAREN); break;
-            case ')': addToken(TokenType.RPAREN); break;
-            case '{': addToken(TokenType.LBRACE); break;
-            case '}': addToken(TokenType.RBRACE); break;
-            case ';': addToken(TokenType.SEMI); break;
-            case ',': addToken(TokenType.COMMA); break;
+        public Token(Type type, String lexeme, Object literal, int line, int col) {
+            this.type = type;
+            this.lexeme = lexeme;
+            this.literal = literal;
+            this.line = line;
+            this.col = col;
+        }
 
-            // 运算符
-            case '+': addToken(TokenType.PLUS); break;
-            case '-': addToken(TokenType.MINUS); break;
-            case '*': addToken(TokenType.MUL); break;
-
-            case '/':
-                if (match('/')) { // 行注释
-                    while (peek() != '\n' && !isAtEnd()) advance();
-                    return;
-                }
-                if (match('*')) { // 块注释
-                    blockComment();
-                    return;
-                }
-                addToken(TokenType.DIV);
-                break;
-
-            case '=': addToken(match('=') ? TokenType.EQ : TokenType.ASSIGN); break;
-            case '>': addToken(match('=') ? TokenType.GE : TokenType.GT); break;
-            case '<': addToken(match('=') ? TokenType.LE : TokenType.LT); break;
-
-            case '!':
-                if (match('=')) addToken(TokenType.NE);
-                else error("非法字符 '!'：仅支持 '!='");
-                break;
-
-            case '"': stringLiteral(); break;
-
-            default:
-                if (LexerUtils.isDigit(c)) {
-                    numberLiteral();
-                    return;
-                }
-                if (LexerUtils.isAlpha(c)) {
-                    identifierOrKeyword();
-                    return;
-                }
-                error("无法识别的字符：'" + c + "'");
-                break;
+        @Override
+        public String toString() {
+            String attr = (literal != null) ? String.valueOf(literal) : lexeme;
+            return String.format("<%s, %s>  @(%d:%d)", type, attr, line, col);
         }
     }
 
     /**
-     * 处理块注释
+     * Token 类型常量定义
      */
-    private void blockComment() {
-        while (!isAtEnd()) {
-            if (peek() == '\n') {
-                advance();
-                line++;
-                col = 1;
-                continue;
-            }
-            if (peek() == '*' && peekNext() == '/') {
-                advance();
-                advance();
-                return;
-            }
-            advance();
-        }
-        error("块注释未闭合（缺少 */）");
+    public static class TokenType {
+        // 关键字
+        public static final Token.Type IF = new Token.Type("IF");
+        public static final Token.Type ELSE = new Token.Type("ELSE");
+        public static final Token.Type FOR = new Token.Type("FOR");
+        public static final Token.Type WHILE = new Token.Type("WHILE");
+        public static final Token.Type INT = new Token.Type("INT");
+        public static final Token.Type DOUBLE = new Token.Type("DOUBLE");
+        public static final Token.Type STRING = new Token.Type("STRING");
+
+        // 标识符 & 字面量
+        public static final Token.Type IDENT = new Token.Type("IDENT");
+        public static final Token.Type INT_LIT = new Token.Type("INT_LIT");
+        public static final Token.Type DOUBLE_LIT = new Token.Type("DOUBLE_LIT");
+        public static final Token.Type STRING_LIT = new Token.Type("STRING_LIT");
+
+        // 运算符
+        public static final Token.Type PLUS = new Token.Type("PLUS");
+        public static final Token.Type MINUS = new Token.Type("MINUS");
+        public static final Token.Type MUL = new Token.Type("MUL");
+        public static final Token.Type DIV = new Token.Type("DIV");
+        public static final Token.Type ASSIGN = new Token.Type("ASSIGN");
+        public static final Token.Type GT = new Token.Type("GT");
+        public static final Token.Type GE = new Token.Type("GE");
+        public static final Token.Type LT = new Token.Type("LT");
+        public static final Token.Type LE = new Token.Type("LE");
+        public static final Token.Type EQ = new Token.Type("EQ");
+        public static final Token.Type NE = new Token.Type("NE");
+
+        // 分隔符
+        public static final Token.Type LPAREN = new Token.Type("LPAREN");
+        public static final Token.Type RPAREN = new Token.Type("RPAREN");
+        public static final Token.Type LBRACE = new Token.Type("LBRACE");
+        public static final Token.Type RBRACE = new Token.Type("RBRACE");
+        public static final Token.Type SEMI = new Token.Type("SEMI");
+        public static final Token.Type COMMA = new Token.Type("COMMA");
+
+        // 特殊标记
+        public static final Token.Type EOF = new Token.Type("EOF");
+        public static final Token.Type ERROR = new Token.Type("ERROR");
     }
-
-    /**
-     * 识别标识符或关键字
-     */
-    private void identifierOrKeyword() {
-        while (LexerUtils.isAlphaNumeric(peek())) advance();
-        String text = source.substring(start, current);
-        Token.Type type = KEYWORDS.getOrDefault(text, TokenType.IDENT);
-        addToken(type);
-    }
-
-    /**
-     * 识别数字字面量（整数或浮点数）
-     */
-    private void numberLiteral() {
-        while (LexerUtils.isDigit(peek())) advance();
-
-        boolean isDouble = false;
-        if (peek() == '.' && LexerUtils.isDigit(peekNext())) {
-            isDouble = true;
-            advance();
-            while (LexerUtils.isDigit(peek())) advance();
-        }
-
-        String text = source.substring(start, current);
-        try {
-            if (isDouble) addToken(TokenType.DOUBLE_LIT, Double.parseDouble(text));
-            else addToken(TokenType.INT_LIT, Integer.parseInt(text));
-        } catch (NumberFormatException ex) {
-            error("数字格式错误：" + text);
-        }
-    }
-
-    /**
-     * 识别字符串字面量
-     */
-    private void stringLiteral() {
-        int beginLine = line;
-        int beginCol = col - 1;
-
-        StringBuilder sb = new StringBuilder();
-        while (!isAtEnd() && peek() != '"') {
-            char ch = advance();
-            if (ch == '\n') {
-                errors.add(String.format("(%d:%d) 词法错误：字符串常量不允许换行", beginLine, beginCol));
-                return;
-            }
-
-            if (ch == '\\') {
-                if (isAtEnd()) break;
-                char esc = advance();
-                switch (esc) {
-                    case '"': sb.append('"'); break;
-                    case 'n': sb.append('\n'); break;
-                    case 't': sb.append('\t'); break;
-                    case '\\': sb.append('\\'); break;
-                    default: sb.append(esc); break;
-                }
-            } else {
-                sb.append(ch);
-            }
-        }
-
-        if (isAtEnd()) {
-            errors.add(String.format("(%d:%d) 词法错误：字符串未闭合", beginLine, beginCol));
-            return;
-        }
-
-        advance(); // closing quote
-        String lexeme = source.substring(start, current);
-        tokens.add(new Token(TokenType.STRING_LIT, lexeme, sb.toString(), beginLine, beginCol));
-    }
-
-    // ===== 工具方法 =====
-    /**
-     * 判断是否到达源码末尾
-     */
-    private boolean isAtEnd() { return current >= source.length(); }
-
-    /**
-     * 读取下一个字符，并移动当前位置指针
-     */
-    private char advance() {
-        char c = source.charAt(current++);
-        col++;
-        return c;
-    }
-
-    /**
-     * 查看当前字符但不移动指针
-     */
-    private char peek() {
-        if (isAtEnd()) return '\0';
-        return source.charAt(current);
-    }
-
-    /**
-     * 查看下一个字符但不移动指针
-     */
-    private char peekNext() {
-        if (current + 1 >= source.length()) return '\0';
-        return source.charAt(current + 1);
-    }
-
-    /**
-     * 匹配当前字符是否为期望的字符
-     */
-    private boolean match(char expected) {
-        if (isAtEnd()) return false;
-        if (source.charAt(current) != expected) return false;
-        current++;
-        col++;
-        return true;
-    }
-
-    /**
-     * 添加Token（无属性值）
-     */
-    private void addToken(Token.Type type) { addToken(type, null); }
-
-    /**
-     * 添加Token（带属性值）
-     */
-    private void addToken(Token.Type type, Object literal) {
-        String text = source.substring(start, current);
-        int tokenCol = col - (current - start);
-        tokens.add(new Token(type, text, literal, line, tokenCol));
-    }
-
-    /**
-     * 记录错误信息
-     */
-    private void error(String msg) {
-        int errCol = col - 1;
-        errors.add(String.format("(%d:%d) 词法错误：%s", line, errCol, msg));
-        String text = source.substring(start, Math.min(current, source.length()));
-        tokens.add(new Token(TokenType.ERROR, text, null, line, errCol));
-    }
-
-    /**
-     * 判断字符是否为数字
-     */
-    private static boolean isDigit(char c) { return LexerUtils.isDigit(c); }
-
-    /**
-     * 判断字符是否为字母或下划线
-     */
-    private static boolean isAlpha(char c) { return LexerUtils.isAlpha(c); }
-
-    /**
-     * 判断字符是否为字母、数字或下划线
-     */
-    private static boolean isAlphaNumeric(char c) { return LexerUtils.isAlphaNumeric(c); }
 }
