@@ -1,4 +1,4 @@
-package com.zds.backend;
+package com.zds.codegen;
 
 import java.util.ArrayList;
 import java.util.List;
