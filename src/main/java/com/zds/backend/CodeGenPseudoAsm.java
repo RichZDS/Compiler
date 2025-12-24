@@ -8,11 +8,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 伪汇编代码生成器 - 将中间代码四元式转换为汇编指令
+ */
 public class CodeGenPseudoAsm {
     private enum ValueType {
         INT, DOUBLE, STRING, UNKNOWN
     }
 
+    /**
+     * 根据四元式列表和语义分析结果生成汇编指令
+     */
     public static List<AsmInstr> generate(List<IR.Quad> quads, Semantic.Result sem) {
         Asm asm = new Asm();
         Map<String, ValueType> tempTypes = new HashMap<>();
@@ -28,6 +34,9 @@ public class CodeGenPseudoAsm {
         return asm.instructions();
     }
 
+    /**
+     * 为单个四元式生成汇编指令
+     */
     private static void emitQuad(Asm asm, IR.Quad q, Semantic.Result sem, Map<String, ValueType> tempTypes) {
         String op = q.op;
         if (":=".equals(op)) {
@@ -80,6 +89,9 @@ public class CodeGenPseudoAsm {
         asm.addRaw(";;UNSUPPORTED " + q);
     }
 
+    /**
+     * 获取跳转指令助记符
+     */
     private static String jumpMnemonic(String op) {
         return switch (op) {
             case "j<" -> "JLT";
@@ -92,6 +104,9 @@ public class CodeGenPseudoAsm {
         };
     }
 
+    /**
+     * 推断二元运算类型
+     */
     private static ValueType inferBinaryType(
             String op,
             String left,
@@ -113,6 +128,9 @@ public class CodeGenPseudoAsm {
         return ValueType.UNKNOWN;
     }
 
+    /**
+     * 获取值的类型
+     */
     private static ValueType typeOf(String value, Semantic.Result sem, Map<String, ValueType> tempTypes) {
         if (value == null) {
             return ValueType.UNKNOWN;
@@ -140,10 +158,16 @@ public class CodeGenPseudoAsm {
         return ValueType.UNKNOWN;
     }
 
+    /**
+     * 判断是否为临时变量
+     */
     private static boolean isTemp(String value) {
         return value != null && value.startsWith("t");
     }
 
+    /**
+     * 判断是否为数值字面量
+     */
     private static boolean isNumericLiteral(String value) {
         try {
             Double.parseDouble(value);

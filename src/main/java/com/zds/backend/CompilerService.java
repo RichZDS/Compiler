@@ -11,7 +11,13 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 编译服务类 - 编译器的主要入口，执行完整的编译流程
+ */
 public class CompilerService {
+    /**
+     * 编译源代码，返回编译产物
+     */
     public static CompilationArtifacts compile(String source, boolean enableOpt) {
         String safeSource = source == null ? "" : source;
         List<String> errors = new ArrayList<>();
@@ -118,6 +124,9 @@ public class CompilerService {
         );
     }
 
+    /**
+     * 格式化Token列表为文本
+     */
     private static String formatTokens(List<Token> tokens) {
         StringBuilder sb = new StringBuilder();
         if (tokens != null) {
@@ -128,6 +137,9 @@ public class CompilerService {
         return sb.toString();
     }
 
+    /**
+     * 格式化四元式列表为文本
+     */
     private static String formatQuads(List<IR.Quad> quads) {
         StringBuilder sb = new StringBuilder();
         if (quads != null) {
@@ -138,6 +150,9 @@ public class CompilerService {
         return sb.toString();
     }
 
+    /**
+     * 合并错误信息
+     */
     private static String joinErrors(List<String> errors) {
         if (errors == null || errors.isEmpty()) {
             return "无错误";
@@ -145,6 +160,9 @@ public class CompilerService {
         return String.join("\n", errors);
     }
 
+    /**
+     * 复制四元式列表
+     */
     private static List<IR.Quad> copyQuads(List<IR.Quad> input) {
         List<IR.Quad> out = new ArrayList<>();
         if (input != null) {
