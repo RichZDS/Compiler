@@ -1,6 +1,6 @@
 package com.zds.main;
-import com.zds.backend.CompilationArtifacts;
-import com.zds.backend.CompilerService;
+import com.zds.service.CompilationArtifacts;
+import com.zds.service.CompilerService;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
