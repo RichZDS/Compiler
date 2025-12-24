@@ -1,8 +1,8 @@
 package com.zds.main;
 
 
-import com.zds.IR;
-import com.zds.Semantic;
+import com.zds.IR.IR;
+import com.zds.Semantic.Semantic;
 import com.zds.lexer.Lexer;
 import com.zds.lexer.Token;
 import com.zds.parser.AST;

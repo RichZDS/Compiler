@@ -1,7 +1,8 @@
 package com.zds.backend;
 
-import com.zds.IR;
-import com.zds.Semantic;
+
+import com.zds.IR.IR;
+import com.zds.Semantic.Semantic;
 
 import java.util.HashMap;
 import java.util.List;
