@@ -1,5 +1,6 @@
 package com.zds.main;
 
+
 import com.zds.IR;
 import com.zds.Semantic;
 import com.zds.lexer.Lexer;
@@ -10,6 +11,7 @@ import com.zds.parser.Parser;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -22,12 +24,14 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class CompilerGui {
     private final JTextArea sourceArea = new JTextArea();
     private final JTextArea outputArea = new JTextArea();
+
     private CompilationResult lastResult = CompilationResult.empty();
 
     public void show() {
@@ -61,13 +65,13 @@ public class CompilerGui {
         splitPane.setDividerLocation(520);
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+
         buttonPanel.add(sectionButton("词法分析", () -> showOutput(lastResult.lexerOutput)));
         buttonPanel.add(sectionButton("语法分析", () -> showOutput(lastResult.parserOutput)));
         buttonPanel.add(sectionButton("中间代码", () -> showOutput(lastResult.irOutput)));
         buttonPanel.add(sectionButton("优化代码", () -> showOutput(lastResult.optimizedOutput)));
         buttonPanel.add(sectionButton("目标代码", () -> showOutput(lastResult.targetOutput)));
         buttonPanel.add(sectionButton("错误信息", () -> showOutput(lastResult.errorOutput)));
-
         frame.add(splitPane, BorderLayout.CENTER);
         frame.add(buttonPanel, BorderLayout.SOUTH);
         frame.setPreferredSize(new Dimension(1100, 700));
@@ -84,6 +88,7 @@ public class CompilerGui {
 
     private void runCompilation() {
         String source = sourceArea.getText();
+
         lastResult = compileSource(source);
         showOutput(lastResult.lexerOutput);
     }
@@ -92,6 +97,7 @@ public class CompilerGui {
         outputArea.setText(text == null ? "" : text);
         outputArea.setCaretPosition(0);
     }
+
 
     private CompilationResult compileSource(String source) {
         List<String> errors = new ArrayList<>();
@@ -157,7 +163,6 @@ public class CompilerGui {
         }
         return sb.toString();
     }
-
     private String readResource(String name) {
         try (InputStream in = CompilerGui.class.getClassLoader().getResourceAsStream(name)) {
             if (in == null) {
@@ -169,6 +174,7 @@ public class CompilerGui {
             return "";
         }
     }
+
 
     private record CompilationResult(
             String lexerOutput,
@@ -182,7 +188,6 @@ public class CompilerGui {
             return new CompilationResult("", "", "", "", "", "");
         }
     }
-
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new CompilerGui().show());
     }

@@ -1,15 +1,9 @@
 package com.zds.main;
-import com.zds.IR;
-import com.zds.Semantic;
-import com.zds.lexer.Lexer;
-import com.zds.lexer.Token;
-import com.zds.parser.AST;
-import com.zds.parser.Parser;
+import com.zds.backend.CompilationArtifacts;
+import com.zds.backend.CompilerService;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * 编译器主入口（Main）
@@ -36,56 +30,22 @@ public class Main {
     private static void runConsole() throws Exception {
         String source = readResource("input.txt");
 
-        // 1) Lexer
-        Lexer lexer = new Lexer(source);
-        List<Token> tokens = lexer.scanTokens();
-        List<String> lexErrors = lexer.getErrors();
+        CompilationArtifacts artifacts = CompilerService.compile(source, true);
 
-        if (!lexErrors.isEmpty()) {
-            System.out.println("===== 词法错误 Lexer Errors =====");
-            for (String e : lexErrors) System.out.println(e);
+        if (artifacts.hasErrors()) {
+            System.out.println("===== 错误信息 Errors =====");
+            System.out.println(artifacts.errorText());
             return;
         }
 
-        // 2) Parser -> AST
-        List<String> parseErrors = new ArrayList<>();
-        AST.Program program = Parser.analyze(tokens, parseErrors);
+        System.out.println("===== IR Before =====");
+        System.out.print(artifacts.irBeforeText());
 
-        if (!parseErrors.isEmpty()) {
-            System.out.println("===== 语法错误 Parser Errors =====");
-            for (String e : parseErrors) System.out.println(e);
-            return;
-        }
+        System.out.println("===== IR After =====");
+        System.out.print(artifacts.irAfterText());
 
-        // 3) Print AST
-        System.out.println("===== AST 语法分析树 =====");
-        System.out.print(AST.Printer.print(program));
-
-        // 4) Semantic
-        List<String> semErrors = new ArrayList<>();
-        Semantic.Result sem = Semantic.analyze(program, semErrors);
-
-        if (!semErrors.isEmpty()) {
-            System.out.println("===== 语义错误 Semantic Errors =====");
-            for (String e : semErrors) System.out.println(e);
-            return;
-        }
-
-        System.out.println("\n===== 符号表 Symbol Table（最小版：global）=====");
-        System.out.print(sem.dumpSymbolTable());
-
-        // 5) IR
-        List<String> irErrors = new ArrayList<>();
-        List<IR.Quad> quads = IR.generate(program, sem, irErrors);
-
-        if (!irErrors.isEmpty()) {
-            System.out.println("===== IR 生成错误 IR Errors =====");
-            for (String e : irErrors) System.out.println(e);
-            return;
-        }
-
-        System.out.println("\n===== 四元式 Quadruples =====");
-        IR.print(quads);
+        System.out.println("===== ASM =====");
+        System.out.print(artifacts.asmText());
     }
 
     private static String readResource(String name) throws Exception {
