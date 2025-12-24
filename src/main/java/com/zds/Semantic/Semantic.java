@@ -1,4 +1,4 @@
-package com.zds;
+package com.zds.Semantic;
 
 import com.zds.parser.AST;
 

@@ -1,5 +1,7 @@
-package com.zds;
+package com.zds.IR;
 
+import com.zds.Semantic.Semantic;
+import com.zds.Semantic.Semantic.Result;
 import com.zds.parser.AST;
 
 import java.util.*;

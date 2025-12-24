@@ -1,6 +1,6 @@
 package com.zds.backend;
 
-import com.zds.IR;
+import com.zds.IR.IR;
 import com.zds.lexer.Token;
 
 import java.util.Collections;
