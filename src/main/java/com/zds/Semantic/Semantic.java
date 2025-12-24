@@ -1,13 +1,13 @@
 package com.zds.Semantic;
 
-import com.zds.parser.AST;
+import com.zds.parser.Parser;
 
 import java.util.*;
 
 /**
  * 语义分析（Semantic Analysis / 静态语义）
  *
- * 输入：AST.Program
+ * 输入：Parser.Program
  * 输出：Semantic.Result（符号表 + Expr类型 + errors）
  *
  * 本阶段做最小闭环：
@@ -76,15 +76,15 @@ public class Semantic {
         public final Scope global;
         public final List<String> errors;
         // 用 IdentityHashMap：按对象引用记录“某个 Expr 的类型”
-        private final IdentityHashMap<AST.Expr, Type> exprTypes;
+        private final IdentityHashMap<Parser.Expr, Type> exprTypes;
 
-        public Result(Scope global, List<String> errors, IdentityHashMap<AST.Expr, Type> exprTypes) {
+        public Result(Scope global, List<String> errors, IdentityHashMap<Parser.Expr, Type> exprTypes) {
             this.global = global;
             this.errors = errors;
             this.exprTypes = exprTypes;
         }
 
-        public Type getType(AST.Expr e) {
+        public Type getType(Parser.Expr e) {
             Type t = exprTypes.get(e);
             return (t == null) ? Type.ERROR : t;
         }
@@ -108,7 +108,7 @@ public class Semantic {
     }
 
     // ========= Facade：对外入口 =========
-    public static Result analyze(AST.Program program, List<String> outErrors) {
+    public static Result analyze(Parser.Program program, List<String> outErrors) {
         Analyzer a = new Analyzer();
         Result r = a.run(program);
         if (outErrors != null) outErrors.addAll(r.errors);
@@ -118,14 +118,14 @@ public class Semantic {
     // ========= Worker：真正干活的 Analyzer =========
     private static class Analyzer {
         private final List<String> errors = new ArrayList<>();
-        private final IdentityHashMap<AST.Expr, Type> exprTypes = new IdentityHashMap<>();
+        private final IdentityHashMap<Parser.Expr, Type> exprTypes = new IdentityHashMap<>();
 
         private Scope current;
 
-        Result run(AST.Program program) {
+        Result run(Parser.Program program) {
             current = new Scope(null, 0); // global
             if (program != null) {
-                for (AST.Stmt s : program.statements) {
+                for (Parser.Stmt s : program.statements) {
                     checkStmt(s);
                 }
             }
@@ -133,19 +133,19 @@ public class Semantic {
         }
 
         // -------- Stmt --------
-        private void checkStmt(AST.Stmt stmt) {
+        private void checkStmt(Parser.Stmt stmt) {
             if (stmt == null) return;
 
-            if (stmt instanceof AST.Block) {
+            if (stmt instanceof Parser.Block) {
                 beginScope();
-                AST.Block b = (AST.Block) stmt;
-                for (AST.Stmt s : b.statements) checkStmt(s);
+                Parser.Block b = (Parser.Block) stmt;
+                for (Parser.Stmt s : b.statements) checkStmt(s);
                 endScope();
                 return;
             }
 
-            if (stmt instanceof AST.VarDecl) {
-                AST.VarDecl d = (AST.VarDecl) stmt;
+            if (stmt instanceof Parser.VarDecl) {
+                Parser.VarDecl d = (Parser.VarDecl) stmt;
                 Type declared = parseType(d.typeName);
 
                 if (!current.define(d.name, declared)) {
@@ -161,8 +161,8 @@ public class Semantic {
                 return;
             }
 
-            if (stmt instanceof AST.Assign) {
-                AST.Assign a = (AST.Assign) stmt;
+            if (stmt instanceof Parser.Assign) {
+                Parser.Assign a = (Parser.Assign) stmt;
                 Symbol sym = current.resolve(a.name);
                 if (sym == null) {
                     err("变量未声明就使用: " + a.name);
@@ -176,8 +176,8 @@ public class Semantic {
                 return;
             }
 
-            if (stmt instanceof AST.IfStmt) {
-                AST.IfStmt i = (AST.IfStmt) stmt;
+            if (stmt instanceof Parser.IfStmt) {
+                Parser.IfStmt i = (Parser.IfStmt) stmt;
                 Type ct = checkCondition(i.condition);
                 if (ct != Type.BOOL && ct != Type.ERROR) {
                     err("if 条件必须是 BOOL（比较表达式），当前是: " + ct);
@@ -187,8 +187,8 @@ public class Semantic {
                 return;
             }
 
-            if (stmt instanceof AST.WhileStmt) {
-                AST.WhileStmt w = (AST.WhileStmt) stmt;
+            if (stmt instanceof Parser.WhileStmt) {
+                Parser.WhileStmt w = (Parser.WhileStmt) stmt;
                 Type ct = checkCondition(w.condition);
                 if (ct != Type.BOOL && ct != Type.ERROR) {
                     err("while 条件必须是 BOOL（比较表达式），当前是: " + ct);
@@ -197,8 +197,8 @@ public class Semantic {
                 return;
             }
 
-            if (stmt instanceof AST.ForStmt) {
-                AST.ForStmt f = (AST.ForStmt) stmt;
+            if (stmt instanceof Parser.ForStmt) {
+                Parser.ForStmt f = (Parser.ForStmt) stmt;
                 beginScope(); // for 自带一个局部作用域（for-init 声明的变量在循环体内可见）
                 if (f.init != null) checkStmt(f.init);
                 if (f.cond != null) {
@@ -213,8 +213,8 @@ public class Semantic {
                 return;
             }
 
-            if (stmt instanceof AST.ExprStmt) {
-                AST.ExprStmt e = (AST.ExprStmt) stmt;
+            if (stmt instanceof Parser.ExprStmt) {
+                Parser.ExprStmt e = (Parser.ExprStmt) stmt;
                 checkExpr(e.expr);
                 return;
             }
@@ -224,11 +224,11 @@ public class Semantic {
         }
 
         // -------- Expr --------
-        private Type checkExpr(AST.Expr expr) {
+        private Type checkExpr(Parser.Expr expr) {
             if (expr == null) return Type.ERROR;
 
-            if (expr instanceof AST.Literal) {
-                Object v = ((AST.Literal) expr).value;
+            if (expr instanceof Parser.Literal) {
+                Object v = ((Parser.Literal) expr).value;
                 Type t;
                 if (v instanceof Integer) t = Type.INT;
                 else if (v instanceof Double || v instanceof Float) t = Type.DOUBLE;
@@ -238,8 +238,8 @@ public class Semantic {
                 return t;
             }
 
-            if (expr instanceof AST.Var) {
-                String name = ((AST.Var) expr).name;
+            if (expr instanceof Parser.Var) {
+                String name = ((Parser.Var) expr).name;
                 Symbol sym = current.resolve(name);
                 if (sym == null) {
                     err("变量未声明就使用: " + name);
@@ -250,8 +250,8 @@ public class Semantic {
                 return sym.type;
             }
 
-            if (expr instanceof AST.Unary) {
-                AST.Unary u = (AST.Unary) expr;
+            if (expr instanceof Parser.Unary) {
+                Parser.Unary u = (Parser.Unary) expr;
                 Type inner = checkExpr(u.expr);
 
                 if (u.op.equals("+")) {
@@ -281,8 +281,8 @@ public class Semantic {
                 return Type.ERROR;
             }
 
-            if (expr instanceof AST.Binary) {
-                AST.Binary b = (AST.Binary) expr;
+            if (expr instanceof Parser.Binary) {
+                Parser.Binary b = (Parser.Binary) expr;
                 Type lt = checkExpr(b.left);
                 Type rt = checkExpr(b.right);
 
@@ -351,7 +351,7 @@ public class Semantic {
             return Type.ERROR;
         }
 
-        private Type checkCondition(AST.Expr cond) {
+        private Type checkCondition(Parser.Expr cond) {
             // 你的语法里条件就是 Expr：我们要求它必须能推到 BOOL
             return checkExpr(cond);
         }

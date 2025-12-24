@@ -1,5 +1,4 @@
 package com.zds.main;
-import com.zds.service.CompilationArtifacts;
 import com.zds.service.CompilerService;
 
 import java.io.InputStream;
@@ -30,7 +29,7 @@ public class Main {
     private static void runConsole() throws Exception {
         String source = readResource("input.txt");
 
-        CompilationArtifacts artifacts = CompilerService.compile(source, true);
+        CompilerService.Artifacts artifacts = CompilerService.compile(source, true);
 
         if (artifacts.hasErrors()) {
             System.out.println("===== 错误信息 Errors =====");

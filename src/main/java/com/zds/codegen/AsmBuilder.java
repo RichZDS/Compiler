@@ -1,6 +1,5 @@
 package com.zds.codegen;
 
-
 import com.zds.IR.IR;
 import com.zds.Semantic.Semantic;
 
@@ -9,35 +8,28 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 伪汇编代码生成器 - 将中间代码四元式转换为汇编指令
+ * 汇编生成器核心实现 (AsmBuilder)
+ * 包级私有类，负责将四元式映射为伪汇编指令。
  */
-public class CodeGenPseudoAsm {
-    private enum ValueType {
-        INT, DOUBLE, STRING, UNKNOWN
+class AsmBuilder {
+    private final Asm asm = new Asm();
+    private final Map<String, ValueType> tempTypes = new HashMap<>();
+
+    public Asm getAsm() {
+        return asm;
     }
 
-    /**
-     * 根据四元式列表和语义分析结果生成汇编指令
-     */
-    public static List<AsmInstr> generate(List<IR.Quad> quads, Semantic.Result sem) {
-        Asm asm = new Asm();
-        Map<String, ValueType> tempTypes = new HashMap<>();
-
+    public void run(List<IR.Quad> quads, Semantic.Result sem) {
         if (quads != null) {
             for (IR.Quad quad : quads) {
-                if (quad == null) {
-                    continue;
+                if (quad != null) {
+                    emitQuad(quad, sem);
                 }
-                emitQuad(asm, quad, sem, tempTypes);
             }
         }
-        return asm.instructions();
     }
 
-    /**
-     * 为单个四元式生成汇编指令
-     */
-    private static void emitQuad(Asm asm, IR.Quad q, Semantic.Result sem, Map<String, ValueType> tempTypes) {
+    private void emitQuad(IR.Quad q, Semantic.Result sem) {
         String op = q.op;
         if (":=".equals(op)) {
             asm.add("MOV", q.result, q.arg1);
@@ -89,10 +81,7 @@ public class CodeGenPseudoAsm {
         asm.addRaw(";;UNSUPPORTED " + q);
     }
 
-    /**
-     * 获取跳转指令助记符
-     */
-    private static String jumpMnemonic(String op) {
+    private String jumpMnemonic(String op) {
         return switch (op) {
             case "j<" -> "JLT";
             case "j<=" -> "JLE";
@@ -104,16 +93,7 @@ public class CodeGenPseudoAsm {
         };
     }
 
-    /**
-     * 推断二元运算类型
-     */
-    private static ValueType inferBinaryType(
-            String op,
-            String left,
-            String right,
-            Semantic.Result sem,
-            Map<String, ValueType> tempTypes
-    ) {
+    private ValueType inferBinaryType(String op, String left, String right, Semantic.Result sem, Map<String, ValueType> tempTypes) {
         ValueType leftType = typeOf(left, sem, tempTypes);
         ValueType rightType = typeOf(right, sem, tempTypes);
         if ("+".equals(op) && (leftType == ValueType.STRING || rightType == ValueType.STRING)) {
@@ -128,22 +108,11 @@ public class CodeGenPseudoAsm {
         return ValueType.UNKNOWN;
     }
 
-    /**
-     * 获取值的类型
-     */
-    private static ValueType typeOf(String value, Semantic.Result sem, Map<String, ValueType> tempTypes) {
-        if (value == null) {
-            return ValueType.UNKNOWN;
-        }
-        if (value.startsWith("\"") && value.endsWith("\"")) {
-            return ValueType.STRING;
-        }
-        if (isNumericLiteral(value)) {
-            return value.contains(".") ? ValueType.DOUBLE : ValueType.INT;
-        }
-        if (isTemp(value)) {
-            return tempTypes.getOrDefault(value, ValueType.UNKNOWN);
-        }
+    private ValueType typeOf(String value, Semantic.Result sem, Map<String, ValueType> tempTypes) {
+        if (value == null) return ValueType.UNKNOWN;
+        if (value.startsWith("\"") && value.endsWith("\"")) return ValueType.STRING;
+        if (isNumericLiteral(value)) return value.contains(".") ? ValueType.DOUBLE : ValueType.INT;
+        if (isTemp(value)) return tempTypes.getOrDefault(value, ValueType.UNKNOWN);
         if (sem != null && sem.global != null) {
             Semantic.Symbol sym = sem.global.resolve(value);
             if (sym != null) {
@@ -158,22 +127,20 @@ public class CodeGenPseudoAsm {
         return ValueType.UNKNOWN;
     }
 
-    /**
-     * 判断是否为临时变量
-     */
-    private static boolean isTemp(String value) {
+    private boolean isTemp(String value) {
         return value != null && value.startsWith("t");
     }
 
-    /**
-     * 判断是否为数值字面量
-     */
-    private static boolean isNumericLiteral(String value) {
+    private boolean isNumericLiteral(String value) {
         try {
             Double.parseDouble(value);
             return true;
         } catch (NumberFormatException ex) {
             return false;
         }
+    }
+
+    private enum ValueType {
+        INT, DOUBLE, STRING, UNKNOWN
     }
 }
