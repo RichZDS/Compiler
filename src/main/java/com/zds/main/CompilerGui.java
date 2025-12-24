@@ -1,14 +1,21 @@
 package com.zds.main;
 
-import com.zds.backend.CompilationArtifacts;
-import com.zds.backend.CompilerService;
+
+import com.zds.IR.IR;
+import com.zds.Semantic.Semantic;
+import com.zds.lexer.Lexer;
+import com.zds.lexer.Token;
+import com.zds.parser.AST;
+import com.zds.parser.Parser;
 
 import javax.swing.BorderFactory;
+import javax.swing.JButton;
 import javax.swing.JFrame;
+
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
