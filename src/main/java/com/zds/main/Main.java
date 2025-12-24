@@ -25,6 +25,15 @@ import java.util.List;
 public class Main {
 
     public static void main(String[] args) throws Exception {
+        if (args != null && args.length > 0 && "cli".equalsIgnoreCase(args[0])) {
+            runConsole();
+            return;
+        }
+
+        CompilerGui.main(args);
+    }
+
+    private static void runConsole() throws Exception {
         String source = readResource("input.txt");
 
         // 1) Lexer
