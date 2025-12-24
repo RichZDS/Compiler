@@ -25,14 +25,15 @@ import java.awt.Font;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class CompilerGui {
     private final JTextArea sourceArea = new JTextArea();
-    private final JTextArea outputArea = new JTextArea();
-
-    private CompilationResult lastResult = CompilationResult.empty();
+    private final JTextArea lexerArea = new JTextArea();
+    private final JTextArea astArea = new JTextArea();
+    private final JTextArea irBeforeArea = new JTextArea();
+    private final JTextArea irAfterArea = new JTextArea();
+    private final JTextArea asmArea = new JTextArea();
+    private final JTextArea errorArea = new JTextArea();
+    private CompilationArtifacts lastResult = CompilationArtifacts.empty();
 
     public void show() {
         JFrame frame = new JFrame("简易编译器 GUI");
@@ -40,129 +41,79 @@ public class CompilerGui {
         frame.setLayout(new BorderLayout());
 
         sourceArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
-        outputArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
-        outputArea.setEditable(false);
+        configureOutputArea(lexerArea);
+        configureOutputArea(astArea);
+        configureOutputArea(irBeforeArea);
+        configureOutputArea(irAfterArea);
+        configureOutputArea(asmArea);
+        configureOutputArea(errorArea);
 
         sourceArea.setText(readResource("input.txt"));
 
         JScrollPane sourceScroll = new JScrollPane(sourceArea);
         sourceScroll.setBorder(BorderFactory.createTitledBorder("源代码 (input.txt)"));
 
-        JScrollPane outputScroll = new JScrollPane(outputArea);
-        outputScroll.setBorder(BorderFactory.createTitledBorder("输出"));
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("词法分析", wrapOutput("词法分析", lexerArea));
+        tabs.addTab("语法分析", wrapOutput("语法分析", astArea));
+        tabs.addTab("中间代码", wrapOutput("中间代码", irBeforeArea));
+        tabs.addTab("优化代码", wrapOutput("优化代码", irAfterArea));
+        tabs.addTab("目标代码", wrapOutput("目标代码", asmArea));
+        tabs.addTab("错误信息", wrapOutput("错误信息", errorArea));
 
         JPanel rightTop = new JPanel(new BorderLayout());
-        JButton runButton = new JButton("运行编译");
+        javax.swing.JButton runButton = new javax.swing.JButton("运行编译");
         runButton.addActionListener(event -> runCompilation());
 
         JPanel runPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         runPanel.add(runButton);
         rightTop.add(runPanel, BorderLayout.NORTH);
-        rightTop.add(outputScroll, BorderLayout.CENTER);
+        rightTop.add(tabs, BorderLayout.CENTER);
 
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, sourceScroll, rightTop);
         splitPane.setResizeWeight(0.5);
         splitPane.setDividerLocation(520);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-
-        buttonPanel.add(sectionButton("词法分析", () -> showOutput(lastResult.lexerOutput)));
-        buttonPanel.add(sectionButton("语法分析", () -> showOutput(lastResult.parserOutput)));
-        buttonPanel.add(sectionButton("中间代码", () -> showOutput(lastResult.irOutput)));
-        buttonPanel.add(sectionButton("优化代码", () -> showOutput(lastResult.optimizedOutput)));
-        buttonPanel.add(sectionButton("目标代码", () -> showOutput(lastResult.targetOutput)));
-        buttonPanel.add(sectionButton("错误信息", () -> showOutput(lastResult.errorOutput)));
         frame.add(splitPane, BorderLayout.CENTER);
-        frame.add(buttonPanel, BorderLayout.SOUTH);
         frame.setPreferredSize(new Dimension(1100, 700));
         frame.pack();
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
 
-    private JButton sectionButton(String label, Runnable action) {
-        JButton button = new JButton(label);
-        button.addActionListener(event -> action.run());
-        return button;
-    }
-
     private void runCompilation() {
         String source = sourceArea.getText();
+        lastResult = CompilerService.compile(source, true);
+        lexerArea.setText(lastResult.lexerText());
+        astArea.setText(lastResult.astText());
+        irBeforeArea.setText(lastResult.irBeforeText());
+        irAfterArea.setText(lastResult.irAfterText());
+        asmArea.setText(lastResult.asmText());
+        errorArea.setText(lastResult.errorText());
 
-        lastResult = compileSource(source);
-        showOutput(lastResult.lexerOutput);
+        resetCarets();
     }
 
-    private void showOutput(String text) {
-        outputArea.setText(text == null ? "" : text);
-        outputArea.setCaretPosition(0);
+    private void configureOutputArea(JTextArea area) {
+        area.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
+        area.setEditable(false);
     }
 
-
-    private CompilationResult compileSource(String source) {
-        List<String> errors = new ArrayList<>();
-
-        Lexer lexer = new Lexer(source);
-        List<Token> tokens = lexer.scanTokens();
-        List<String> lexErrors = lexer.getErrors();
-        String lexerOutput = formatTokens(tokens);
-        if (!lexErrors.isEmpty()) {
-            errors.addAll(lexErrors);
-        }
-
-        String parserOutput = "";
-        String irOutput = "";
-        if (errors.isEmpty()) {
-            List<String> parseErrors = new ArrayList<>();
-            AST.Program program = Parser.analyze(tokens, parseErrors);
-            if (!parseErrors.isEmpty()) {
-                errors.addAll(parseErrors);
-            } else {
-                parserOutput = AST.Printer.print(program);
-
-                List<String> semErrors = new ArrayList<>();
-                Semantic.Result sem = Semantic.analyze(program, semErrors);
-                if (!semErrors.isEmpty()) {
-                    errors.addAll(semErrors);
-                } else {
-                    List<String> irErrors = new ArrayList<>();
-                    List<IR.Quad> quads = IR.generate(program, sem, irErrors);
-                    if (!irErrors.isEmpty()) {
-                        errors.addAll(irErrors);
-                    } else {
-                        irOutput = formatQuads(quads);
-                    }
-                }
-            }
-        }
-
-        String errorOutput = errors.isEmpty() ? "无错误" : String.join("\n", errors);
-
-        return new CompilationResult(
-                lexerOutput,
-                parserOutput.isEmpty() ? "(无语法分析输出)" : parserOutput,
-                irOutput.isEmpty() ? "(无中间代码输出)" : irOutput,
-                "优化代码尚未实现",
-                "目标代码尚未实现",
-                errorOutput
-        );
+    private JScrollPane wrapOutput(String title, JTextArea area) {
+        JScrollPane scrollPane = new JScrollPane(area);
+        scrollPane.setBorder(BorderFactory.createTitledBorder(title));
+        return scrollPane;
     }
 
-    private String formatTokens(List<Token> tokens) {
-        StringBuilder sb = new StringBuilder();
-        for (Token token : tokens) {
-            sb.append(token).append("\n");
-        }
-        return sb.toString();
+    private void resetCarets() {
+        lexerArea.setCaretPosition(0);
+        astArea.setCaretPosition(0);
+        irBeforeArea.setCaretPosition(0);
+        irAfterArea.setCaretPosition(0);
+        asmArea.setCaretPosition(0);
+        errorArea.setCaretPosition(0);
     }
 
-    private String formatQuads(List<IR.Quad> quads) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < quads.size(); i++) {
-            sb.append(i).append(": ").append(quads.get(i)).append("\n");
-        }
-        return sb.toString();
-    }
     private String readResource(String name) {
         try (InputStream in = CompilerGui.class.getClassLoader().getResourceAsStream(name)) {
             if (in == null) {
@@ -175,19 +126,6 @@ public class CompilerGui {
         }
     }
 
-
-    private record CompilationResult(
-            String lexerOutput,
-            String parserOutput,
-            String irOutput,
-            String optimizedOutput,
-            String targetOutput,
-            String errorOutput
-    ) {
-        static CompilationResult empty() {
-            return new CompilationResult("", "", "", "", "", "");
-        }
-    }
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new CompilerGui().show());
     }
