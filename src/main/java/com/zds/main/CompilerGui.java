@@ -1,23 +1,8 @@
 package com.zds.main;
+import com.zds.backend.CompilationArtifacts;
+import com.zds.backend.CompilerService;
 
-
-import com.zds.IR.IR;
-import com.zds.Semantic.Semantic;
-import com.zds.lexer.Lexer;
-import com.zds.lexer.Token;
-import com.zds.parser.AST;
-import com.zds.parser.Parser;
-
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
-import javax.swing.JTextArea;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -34,7 +19,6 @@ public class CompilerGui {
     private final JTextArea asmArea = new JTextArea();
     private final JTextArea errorArea = new JTextArea();
     private CompilationArtifacts lastResult = CompilationArtifacts.empty();
-
     public void show() {
         JFrame frame = new JFrame("简易编译器 GUI");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

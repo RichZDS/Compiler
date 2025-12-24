@@ -8,13 +8,22 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * 优化器类 - 对中间代码进行优化
+ */
 public class Optimizer {
     private static final int MAX_PASSES = 5;
 
+    /**
+     * 优化四元式列表（使用默认最大遍数）
+     */
     public static List<IR.Quad> optimize(List<IR.Quad> input) {
         return optimize(input, MAX_PASSES);
     }
 
+    /**
+     * 优化四元式列表
+     */
     public static List<IR.Quad> optimize(List<IR.Quad> input, int maxPasses) {
         List<IR.Quad> current = copy(input);
         for (int i = 0; i < maxPasses; i++) {
@@ -27,6 +36,9 @@ public class Optimizer {
         return current;
     }
 
+    /**
+     * 执行一次优化
+     */
     private static List<IR.Quad> optimizeOnce(List<IR.Quad> quads) {
         List<IR.Quad> output = new ArrayList<>();
         List<IR.Quad> block = new ArrayList<>();
@@ -45,6 +57,9 @@ public class Optimizer {
         return output;
     }
 
+    /**
+     * 刷新代码块（执行简化和死代码消除）
+     */
     private static void flushBlock(List<IR.Quad> output, List<IR.Quad> block) {
         if (block.isEmpty()) {
             return;
@@ -55,6 +70,9 @@ public class Optimizer {
         block.clear();
     }
 
+    /**
+     * 简化代码块中的四元式
+     */
     private static List<IR.Quad> simplify(List<IR.Quad> quads) {
         List<IR.Quad> out = new ArrayList<>();
         for (IR.Quad q : quads) {
@@ -64,6 +82,9 @@ public class Optimizer {
         return out;
     }
 
+    /**
+     * 简化单个四元式
+     */
     private static IR.Quad simplifyQuad(IR.Quad q) {
         if (q == null) {
             return q;
@@ -96,6 +117,9 @@ public class Optimizer {
         return q;
     }
 
+    /**
+     * 应用代数化简规则
+     */
     private static IR.Quad simplifyAlgebra(String op, String a, String b, String result) {
         if ("+".equals(op)) {
             if (isZero(b)) {
@@ -129,6 +153,9 @@ public class Optimizer {
         return null;
     }
 
+    /**
+     * 消除死临时变量
+     */
     private static List<IR.Quad> eliminateDeadTemps(List<IR.Quad> quads) {
         List<IR.Quad> out = new ArrayList<>();
         Set<String> used = new HashSet<>();
@@ -159,20 +186,32 @@ public class Optimizer {
         return out;
     }
 
+    /**
+     * 标记变量为已使用
+     */
     private static void markUsed(Set<String> used, String value) {
         if (isTemp(value)) {
             used.add(value);
         }
     }
 
+    /**
+     * 判断是否为二元操作
+     */
     private static boolean isBinaryOp(String op) {
         return "+".equals(op) || "-".equals(op) || "*".equals(op) || "/".equals(op);
     }
 
+    /**
+     * 判断是否为标签指令
+     */
     private static boolean isLabel(IR.Quad q) {
         return q != null && "label".equals(q.op);
     }
 
+    /**
+     * 判断是否为跳转指令
+     */
     private static boolean isJump(IR.Quad q) {
         if (q == null || q.op == null) {
             return false;
@@ -183,18 +222,30 @@ public class Optimizer {
         return q.op.startsWith("j") && q.op.length() > 1;
     }
 
+    /**
+     * 判断是否为临时变量
+     */
     private static boolean isTemp(String value) {
         return value != null && value.startsWith("t");
     }
 
+    /**
+     * 判断是否为零值
+     */
     private static boolean isZero(String value) {
         return "0".equals(value) || "0.0".equals(value);
     }
 
+    /**
+     * 判断是否为一值
+     */
     private static boolean isOne(String value) {
         return "1".equals(value) || "1.0".equals(value);
     }
 
+    /**
+     * 判断是否为数值字面量
+     */
     private static boolean isNumericLiteral(String value) {
         if (value == null || value.isBlank()) {
             return false;
@@ -210,6 +261,9 @@ public class Optimizer {
         }
     }
 
+    /**
+     * 数值折叠计算
+     */
     private static String foldNumeric(String op, String a, String b) {
         try {
             double left = Double.parseDouble(a);
@@ -236,6 +290,9 @@ public class Optimizer {
         }
     }
 
+    /**
+     * 格式化数字
+     */
     private static String formatNumber(double value) {
         if (Math.rint(value) == value) {
             return Long.toString((long) value);
@@ -243,6 +300,9 @@ public class Optimizer {
         return Double.toString(value);
     }
 
+    /**
+     * 复制四元式列表
+     */
     private static List<IR.Quad> copy(List<IR.Quad> input) {
         List<IR.Quad> out = new ArrayList<>();
         if (input != null) {
@@ -253,6 +313,9 @@ public class Optimizer {
         return out;
     }
 
+    /**
+     * 复制单个四元式
+     */
     private static IR.Quad copyQuad(IR.Quad q) {
         if (q == null) {
             return null;
@@ -260,6 +323,9 @@ public class Optimizer {
         return new IR.Quad(q.op, q.arg1, q.arg2, q.result);
     }
 
+    /**
+     * 比较两个四元式列表是否相等
+     */
     private static boolean equalsQuads(List<IR.Quad> a, List<IR.Quad> b) {
         if (a == null || b == null) {
             return a == b;
@@ -277,6 +343,9 @@ public class Optimizer {
         return true;
     }
 
+    /**
+     * 比较两个四元式是否相等
+     */
     private static boolean quadEquals(IR.Quad a, IR.Quad b) {
         if (a == null || b == null) {
             return a == b;
@@ -287,6 +356,9 @@ public class Optimizer {
                 && equalsStr(a.result, b.result);
     }
 
+    /**
+     * 比较两个字符串是否相等
+     */
     private static boolean equalsStr(String a, String b) {
         if (a == null) {
             return b == null;
