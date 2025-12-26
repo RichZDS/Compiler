@@ -31,7 +31,6 @@ class Recognizer {
      */
     private final Parser.Factory ast;
 
-     
     /**
      * 构造语法分析器
      * @param tokens 词法单元列表
