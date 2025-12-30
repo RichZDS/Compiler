@@ -1,0 +1,11 @@
+MOV t1, 6
+ADD t2, 1, t1
+MOV a, t2
+JGT a, 5, L1
+JMP L2
+LABEL L1
+SUB t3, a, 1
+MOV a, t3
+JMP L3
+LABEL L2
+LABEL L3

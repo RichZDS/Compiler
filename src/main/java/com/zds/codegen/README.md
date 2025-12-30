@@ -42,3 +42,47 @@
 
 ### 类型推断
 在生成 `ADD` 等指令时，会利用语义分析阶段的类型信息，区分整数加法 (`ADD`) 和字符串拼接 (`CONCAT`)。
+
+
+1. 数据移动指令
+   MOV dest, src: 将源操作数 src 的值移动到目标操作数 dest。
+   映射自四元式 (:=, src, _, dest)。
+   示例: MOV t1, 5 (将常量5赋值给临时变量t1)。
+2. 算术运算指令
+   ADD res, a, b: 计算 a + b 并将结果存入 res。
+   映射自四元式 (+, a, b, res)。
+   示例: ADD t2, t1, 3。
+   SUB res, a, b: 计算 a - b 并将结果存入 res。
+   映射自四元式 (-, a, b, res)。
+   MUL res, a, b: 计算 a * b 并将结果存入 res。
+   映射自四元式 (*, a, b, res)。
+   DIV res, a, b: 计算 a / b 并将结果存入 res。
+   映射自四元式 (/, a, b, res)。
+   NEG res, a: 计算 -a 并将结果存入 res。
+   映射自四元式 (neg, a, _, res)。
+   示例: NEG t3, t2 (计算t2的负值)。
+3. 字符串操作指令
+   CONCAT res, a, b: 将字符串 a 和 b 拼接起来，结果存入 res。
+   映射自四元式 (+, a, b, res)，但当类型推断发现操作数为字符串时使用此指令。
+   示例: CONCAT t4, "Hello", "World"。
+4. 控制流指令
+   JMP Lx: 无条件跳转到标签 Lx。
+   映射自四元式 (j, _, _, Lx)。
+   JLT Lx, a, b: 如果 a < b，则跳转到标签 Lx。
+   映射自四元式 (j<, a, b, Lx)。
+   JLE Lx, a, b: 如果 a <= b，则跳转到标签 Lx。
+   映射自四元式 (j<=, a, b, Lx)。
+   JGT Lx, a, b: 如果 a > b，则跳转到标签 Lx。
+   映射自四元式 (j>, a, b, Lx)。
+   JGE Lx, a, b: 如果 a >= b，则跳转到标签 Lx。
+   映射自四元式 (j>=, a, b, Lx)。
+   JEQ Lx, a, b: 如果 a == b，则跳转到标签 Lx。
+   映射自四元式 (j==, a, b, Lx)。
+   JNE Lx, a, b: 如果 a != b，则跳转到标签 Lx。
+   映射自四元式 (j!=, a, b, Lx)。
+5. 标签定义指令
+   LABEL Lx: 定义一个标签 Lx，供跳转指令使用。
+   映射自四元式 (label, Lx, _, _)。
+   示例: LABEL L1。
+6. 其他指令
+   ;;UNSUPPORTED ...: 这不是一个真正的指令，而是一个注释行，用于标记那些无法处理或不支持的四元式。它由 asm.addRaw(";;UNSUPPORTED " + q); 生成，便于调试。

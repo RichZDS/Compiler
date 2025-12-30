@@ -79,7 +79,7 @@ public class CompilerService {
 
         // 写文件
         try {
-            CodeGen.writeToFile(Path.of("target", "out.asm"), asm);
+            CodeGen.writeToFile(Path.of("src", "main", "resources", "out.asm"), asm);CodeGen.writeToFile(Path.of("target", "out.asm"), asm);
         } catch (Exception ex) {
             errors.add("写文件失败: " + ex.getMessage());
         }

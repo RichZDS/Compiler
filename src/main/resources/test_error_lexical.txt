@@ -1,0 +1,16 @@
+/*
+ * 词法分析错误案例
+ */
+
+// 非法字符
+@#$%
+
+// 未闭合的字符串
+string unclosed = "This is not closed;
+
+// 未闭合的块注释
+/* This is an unclosed block comment
+
+
+// 数字格式错误 未实现
+int badNum = 123abc;

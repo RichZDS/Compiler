@@ -218,8 +218,16 @@ class Recognizer {
         return left;
     }
 
+    /**
+     * 解析表达式（顶层表达式解析方法）
+     * @return 解析得到的表达式节点
+     */
     private Parser.Expr expression() { return additive(); }
 
+    /**
+     * 解析加法/减法表达式（处理 + 和 - 操作符）
+     * @return 解析得到的表达式节点
+     */
     private Parser.Expr additive() {
         Parser.Expr expr = multiplicative();
         while (match(Lexer.TokenType.PLUS, Lexer.TokenType.MINUS)) {
@@ -230,6 +238,10 @@ class Recognizer {
         return expr;
     }
 
+    /**
+     * 解析乘法/除法表达式（处理 * 和 / 操作符）
+     * @return 解析得到的表达式节点
+     */
     private Parser.Expr multiplicative() {
         Parser.Expr expr = unary();
         while (match(Lexer.TokenType.MUL, Lexer.TokenType.DIV)) {
@@ -240,6 +252,10 @@ class Recognizer {
         return expr;
     }
 
+    /**
+     * 解析一元表达式（处理正负号）
+     * @return 解析得到的表达式节点
+     */
     private Parser.Expr unary() {
         if (match(Lexer.TokenType.PLUS, Lexer.TokenType.MINUS)) {
             String op = previous().lexeme;
@@ -248,6 +264,10 @@ class Recognizer {
         return primary();
     }
 
+    /**
+     * 解析基本表达式（字面量、变量、括号表达式等）
+     * @return 解析得到的表达式节点
+     */
     private Parser.Expr primary() {
         if (match(Lexer.TokenType.INT_LIT)) return ast.newLiteral(previous().literal);
         if (match(Lexer.TokenType.DOUBLE_LIT)) return ast.newLiteral(previous().literal);
@@ -266,22 +286,66 @@ class Recognizer {
         return ast.newLiteral(null);
     }
 
+    /**
+     * 匹配指定类型的词法单元
+     * @param types 要匹配的词法单元类型列表
+     * @return 是否匹配成功
+     */
     public boolean match(Lexer.Token.Type... types) {
         for (Lexer.Token.Type t : types) { if (check(t)) { advance(); return true; } }
         return false;
     }
+    
+    /**
+     * 检查当前词法单元是否为指定类型
+     * @param type 要检查的词法单元类型
+     * @return 是否为指定类型
+     */
     public boolean check(Lexer.Token.Type type) { return !isAtEnd() && peek().type == type; }
+    
+    /**
+     * 检查下一个词法单元是否为指定类型
+     * @param type 要检查的词法单元类型
+     * @return 下一个词法单元是否为指定类型
+     */
     public boolean checkNext(Lexer.Token.Type type) {
         if (current + 1 >= tokens.size()) return false;
         return tokens.get(current + 1).type == type;
     }
+    
+    /**
+     * 消费当前词法单元并前进到下一个
+     * @return 前一个词法单元
+     */
     public Lexer.Token advance() { if (!isAtEnd()) current++; return previous(); }
+    
+    /**
+     * 检查是否已到达词法单元列表末尾
+     * @return 是否已到达末尾
+     */
     public boolean isAtEnd() {
         if (current >= tokens.size()) return true;
         return peek().type == Lexer.TokenType.EOF;
     }
+    
+    /**
+     * 获取当前词法单元（不消费）
+     * @return 当前词法单元
+     */
     public Lexer.Token peek() { return tokens.get(Math.min(current, tokens.size() - 1)); }
+    
+    /**
+     * 获取前一个词法单元
+     * @return 前一个词法单元
+     */
     public Lexer.Token previous() { return tokens.get(Math.max(current - 1, 0)); }
+    
+    /**
+     * 消费指定类型的词法单元
+     * @param type 要消费的词法单元类型
+     * @param message 不匹配时的错误消息
+     * @return 消费的词法单元或当前词法单元（如果类型不匹配）
+     */
     public Lexer.Token consume(Lexer.Token.Type type, String message) {
         if (check(type)) return advance();
         err.error(errors, peek(), message);
