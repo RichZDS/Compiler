@@ -1,0 +1,33 @@
+/*
+ * 成功案例：展示所有核心功能
+ */
+
+// 变量声明与赋值
+int a = 5;
+double b = 3.14;
+string s = "Hello";
+
+// 算术运算 暂未实现
+int c = a + b; // 类型推断：b是double，所以c是double
+int d = a * 2; // 类型推断：a和2都是int，所以d是int
+
+// 字符串拼接 (项目亮点)
+string greeting = s + " World!"; // 类型推断：s是string，所以使用CONCAT指令
+
+// 控制流：if语句
+if (a > 3) {
+    int x = 10;
+} else {
+    int y = 20;
+}
+
+// 控制流：while循环
+while (a < 10) {
+    a = a + 1;
+}
+
+// 控制流：for循环
+for (int i = 0; i < 5; i = i + 1) {
+    string msg = "Iteration " + i; // 字符串拼接
+}
+

@@ -18,19 +18,22 @@ import java.util.*;
 public class Semantic {
 
     // ========= 类型系统（Type System）=========
+    // 定义语言中的基本类型
     public enum Type {
         INT, DOUBLE, STRING, BOOL, VOID, ERROR;
 
+        // 检查当前类型是否为数值类型
         public boolean isNumeric() {
             return this == INT || this == DOUBLE;
         }
     }
 
     // ========= 符号 / 符号表（Symbol / Symbol Table）=========
+    // 符号类，表示一个变量/标识符的信息
     public static class Symbol {
-        public final String name;
-        public final Type type;
-        public final int depth;
+        public final String name;   // 符号名称
+        public final Type type;     // 符号类型
+        public final int depth;     // 作用域深度
 
         public Symbol(String name, Type type, int depth) {
             this.name = name;
@@ -39,10 +42,11 @@ public class Semantic {
         }
     }
 
+    // 作用域类，管理一个作用域内的符号表
     public static class Scope {
-        private final Scope parent;
-        private final Map<String, Symbol> table = new LinkedHashMap<>();
-        private final int depth;
+        private final Scope parent;     // 父作用域
+        private final Map<String, Symbol> table = new LinkedHashMap<>();  // 符号表
+        private final int depth;        // 当前作用域深度
 
         public Scope(Scope parent, int depth) {
             this.parent = parent;
@@ -52,30 +56,34 @@ public class Semantic {
         public Scope parent() { return parent; }
         public int depth() { return depth; }
 
+        // 在当前作用域定义一个符号
         public boolean define(String name, Type type) {
-            if (table.containsKey(name)) return false;
+            if (table.containsKey(name)) return false;  // 已存在同名符号，定义失败
             table.put(name, new Symbol(name, type, depth));
             return true;
         }
 
+        // 解析符号名称，从当前作用域向上查找
         public Symbol resolve(String name) {
             for (Scope s = this; s != null; s = s.parent) {
                 Symbol sym = s.table.get(name);
                 if (sym != null) return sym;
             }
-            return null;
+            return null;  // 未找到符号
         }
 
+        // 获取当前作用域中的所有符号
         public Collection<Symbol> symbolsHere() {
             return table.values();
         }
     }
 
     // ========= 语义分析输出（Result）=========
+    // 语义分析结果类
     public static class Result {
-        public final Scope global;
-        public final List<String> errors;
-        // 用 IdentityHashMap：按对象引用记录“某个 Expr 的类型”
+        public final Scope global;      // 全局作用域
+        public final List<String> errors;   // 错误信息列表
+        // 用 IdentityHashMap：按对象引用记录"某个 Expr 的类型"
         private final IdentityHashMap<Parser.Expr, Type> exprTypes;
 
         public Result(Scope global, List<String> errors, IdentityHashMap<Parser.Expr, Type> exprTypes) {
@@ -84,17 +92,20 @@ public class Semantic {
             this.exprTypes = exprTypes;
         }
 
+        // 获取表达式的类型
         public Type getType(Parser.Expr e) {
             Type t = exprTypes.get(e);
             return (t == null) ? Type.ERROR : t;
         }
 
+        // 导出符号表信息
         public String dumpSymbolTable() {
             StringBuilder sb = new StringBuilder();
             dumpScope(sb, global, 0);
             return sb.toString();
         }
 
+        // 递归导出作用域信息
         private void dumpScope(StringBuilder sb, Scope scope, int indent) {
             if (scope == null) return;
             String pad = "  ".repeat(Math.max(0, indent));
@@ -102,12 +113,13 @@ public class Semantic {
             for (Symbol sym : scope.symbolsHere()) {
                 sb.append(pad).append("  - ").append(sym.name).append(" : ").append(sym.type).append("\n");
             }
-            // 这里不保存子 Scope 引用（为了“最小实现”），所以只打印全局 scope 的内容即可
+            // 这里不保存子 Scope 引用（为了"最小实现"），所以只打印全局 scope 的内容即可
             // 如果你想把所有 block scope 都打印出来，需要把子 scope 链表保存起来。
         }
     }
 
     // ========= Facade：对外入口 =========
+    // 语义分析入口方法
     public static Result analyze(Parser.Program program, List<String> outErrors) {
         Analyzer a = new Analyzer();
         Result r = a.run(program);
@@ -116,34 +128,38 @@ public class Semantic {
     }
 
     // ========= Worker：真正干活的 Analyzer =========
+    // 语义分析器实现类
     private static class Analyzer {
-        private final List<String> errors = new ArrayList<>();
-        private final IdentityHashMap<Parser.Expr, Type> exprTypes = new IdentityHashMap<>();
+        private final List<String> errors = new ArrayList<>();  // 错误收集列表
+        private final IdentityHashMap<Parser.Expr, Type> exprTypes = new IdentityHashMap<>();  // 表达式类型映射
 
-        private Scope current;
+        private Scope current;  // 当前作用域
 
+        // 执行语义分析的主方法
         Result run(Parser.Program program) {
-            current = new Scope(null, 0); // global
+            current = new Scope(null, 0); // 初始化全局作用域
             if (program != null) {
                 for (Parser.Stmt s : program.statements) {
-                    checkStmt(s);
+                    checkStmt(s);  // 检查每个语句
                 }
             }
             return new Result(current, errors, exprTypes);
         }
 
-        // -------- Stmt --------
+        // -------- Stmt 语句检查 --------
         private void checkStmt(Parser.Stmt stmt) {
             if (stmt == null) return;
 
+            // 处理块语句
             if (stmt instanceof Parser.Block) {
-                beginScope();
+                beginScope();  // 进入新的作用域
                 Parser.Block b = (Parser.Block) stmt;
                 for (Parser.Stmt s : b.statements) checkStmt(s);
-                endScope();
+                endScope();    // 退出当前作用域
                 return;
             }
 
+            // 处理变量声明语句
             if (stmt instanceof Parser.VarDecl) {
                 Parser.VarDecl d = (Parser.VarDecl) stmt;
                 Type declared = parseType(d.typeName);
@@ -153,7 +169,7 @@ public class Semantic {
                 }
 
                 if (d.init != null) {
-                    Type rhs = checkExpr(d.init);
+                    Type rhs = checkExpr(d.init);  // 检查初始化表达式
                     if (!assignable(declared, rhs)) {
                         err("类型不兼容：不能把 " + rhs + " 赋值给 " + declared + "（变量 " + d.name + "）");
                     }
@@ -161,6 +177,7 @@ public class Semantic {
                 return;
             }
 
+            // 处理赋值语句
             if (stmt instanceof Parser.Assign) {
                 Parser.Assign a = (Parser.Assign) stmt;
                 Symbol sym = current.resolve(a.name);
@@ -176,6 +193,7 @@ public class Semantic {
                 return;
             }
 
+            // 处理 if 语句
             if (stmt instanceof Parser.IfStmt) {
                 Parser.IfStmt i = (Parser.IfStmt) stmt;
                 Type ct = checkCondition(i.condition);
@@ -187,6 +205,7 @@ public class Semantic {
                 return;
             }
 
+            // 处理 while 语句
             if (stmt instanceof Parser.WhileStmt) {
                 Parser.WhileStmt w = (Parser.WhileStmt) stmt;
                 Type ct = checkCondition(w.condition);
@@ -197,6 +216,7 @@ public class Semantic {
                 return;
             }
 
+            // 处理 for 语句
             if (stmt instanceof Parser.ForStmt) {
                 Parser.ForStmt f = (Parser.ForStmt) stmt;
                 beginScope(); // for 自带一个局部作用域（for-init 声明的变量在循环体内可见）
@@ -213,6 +233,7 @@ public class Semantic {
                 return;
             }
 
+            // 处理表达式语句
             if (stmt instanceof Parser.ExprStmt) {
                 Parser.ExprStmt e = (Parser.ExprStmt) stmt;
                 checkExpr(e.expr);
@@ -223,10 +244,11 @@ public class Semantic {
             err("未知语句类型: " + stmt.getClass().getSimpleName());
         }
 
-        // -------- Expr --------
+        // -------- Expr 表达式检查 --------
         private Type checkExpr(Parser.Expr expr) {
             if (expr == null) return Type.ERROR;
 
+            // 处理字面量表达式
             if (expr instanceof Parser.Literal) {
                 Object v = ((Parser.Literal) expr).value;
                 Type t;
@@ -238,6 +260,7 @@ public class Semantic {
                 return t;
             }
 
+            // 处理变量表达式
             if (expr instanceof Parser.Var) {
                 String name = ((Parser.Var) expr).name;
                 Symbol sym = current.resolve(name);
@@ -250,6 +273,7 @@ public class Semantic {
                 return sym.type;
             }
 
+            // 处理一元表达式
             if (expr instanceof Parser.Unary) {
                 Parser.Unary u = (Parser.Unary) expr;
                 Type inner = checkExpr(u.expr);
@@ -281,6 +305,7 @@ public class Semantic {
                 return Type.ERROR;
             }
 
+            // 处理二元表达式
             if (expr instanceof Parser.Binary) {
                 Parser.Binary b = (Parser.Binary) expr;
                 Type lt = checkExpr(b.left);
@@ -351,20 +376,24 @@ public class Semantic {
             return Type.ERROR;
         }
 
+        // 检查条件表达式（必须是布尔类型）
         private Type checkCondition(Parser.Expr cond) {
             // 你的语法里条件就是 Expr：我们要求它必须能推到 BOOL
             return checkExpr(cond);
         }
 
         // -------- helpers --------
+        // 进入新的作用域
         private void beginScope() {
             current = new Scope(current, current.depth() + 1);
         }
 
+        // 退出当前作用域
         private void endScope() {
             if (current.parent() != null) current = current.parent();
         }
 
+        // 解析类型名称为 Type 枚举
         private Type parseType(String typeName) {
             if (typeName == null) return Type.ERROR;
             String t = typeName.trim().toLowerCase(Locale.ROOT);
@@ -374,6 +403,7 @@ public class Semantic {
             return Type.ERROR;
         }
 
+        // 检查是否可以将 source 类型赋值给 target 类型
         private boolean assignable(Type target, Type source) {
             if (target == Type.ERROR || source == Type.ERROR) return true; // 避免级联报错
             if (target == source) return true;
@@ -382,11 +412,13 @@ public class Semantic {
             return false;
         }
 
+        // 判断是否是比较运算符
         private boolean isRelOp(String op) {
             return op.equals(">") || op.equals(">=") || op.equals("<") || op.equals("<=")
                     || op.equals("==") || op.equals("!=");
         }
 
+        // 添加错误信息
         private void err(String msg) {
             errors.add("语义错误: " + msg);
         }
